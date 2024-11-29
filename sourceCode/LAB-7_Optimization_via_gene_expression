@@ -1,0 +1,101 @@
+import random
+import numpy as np
+
+print()
+print("Rishabh Kumar - 1BM22CS221")
+print()
+
+OPERATORS = ['+', '-', '*', '/']
+TERMINALS = ['x', '1', '2', '3', '4', '5', '6', '7', '8', '9']
+
+POPULATION_SIZE = 50
+GENE_LENGTH = 10
+MAX_GENERATIONS = 10
+MUTATION_RATE = 0.1
+CROSSOVER_RATE = 0.8
+TARGET = 100
+
+class Chromosome:
+    def __init__(self, genes=None):
+        self.genes = genes or self._generate_genes()
+        self.fitness = None
+
+    def _generate_genes(self):
+        genes = []
+        for _ in range(GENE_LENGTH):
+            gene = random.choice(OPERATORS + TERMINALS)
+            genes.append(gene)
+        return genes
+
+    def decode(self):
+        expression = ''.join(self.genes)
+        return expression
+
+    def evaluate(self, x_value):
+        expression = self.decode()
+        try:
+            result = eval(expression.replace('x', str(x_value)))
+            return result
+        except ZeroDivisionError:
+            return float('inf')
+        except Exception as e:
+            return float('inf')
+
+    def compute_fitness(self, x_value, target=TARGET):
+        result = self.evaluate(x_value)
+        self.fitness = abs(result - target)
+
+def initialize_population():
+    population = []
+    for _ in range(POPULATION_SIZE):
+        chromosome = Chromosome()
+        population.append(chromosome)
+    return population
+
+def selection(population):
+    population.sort(key=lambda x: x.fitness)
+    return population[:POPULATION_SIZE // 2]
+
+def crossover(parent1, parent2):
+    point = random.randint(1, GENE_LENGTH - 1)
+    child1_genes = parent1.genes[:point] + parent2.genes[point:]
+    child2_genes = parent2.genes[:point] + parent1.genes[point:]
+    return Chromosome(child1_genes), Chromosome(child2_genes)
+
+def mutation(chromosome):
+    gene_idx = random.randint(0, GENE_LENGTH - 1)
+    gene = random.choice(OPERATORS + TERMINALS)
+    chromosome.genes[gene_idx] = gene
+    return chromosome
+
+def gene_expression_programming():
+    population = initialize_population()
+
+    for generation in range(MAX_GENERATIONS):
+        for chromosome in population:
+            chromosome.compute_fitness(x_value=5)
+
+        best_chromosome = min(population, key=lambda x: x.fitness)
+        print(f"Generation {generation}: Best fitness = {best_chromosome.fitness}, Expression: {best_chromosome.decode()}")
+
+        if best_chromosome.fitness == 0:
+            print(f"Optimal solution found: {best_chromosome.decode()}")
+            break
+
+        selected_parents = selection(population)
+        next_generation = selected_parents.copy()
+
+        while len(next_generation) < POPULATION_SIZE:
+            if random.random() < CROSSOVER_RATE:
+                parent1, parent2 = random.sample(selected_parents, 2)
+                child1, child2 = crossover(parent1, parent2)
+                next_generation.extend([child1, child2])
+            else:
+                parent = random.choice(selected_parents)
+                child = mutation(parent)
+                next_generation.append(child)
+
+        population = next_generation
+
+if __name__ == "__main__":
+    gene_expression_programming()
