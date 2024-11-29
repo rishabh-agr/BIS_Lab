@@ -1,0 +1,51 @@
+import random
+import numpy as np
+from concurrent.futures import ThreadPoolExecutor
+
+GRID_SIZE = 10
+ITERATIONS = 10
+NEIGHBORS = [(-1, 0), (1, 0), (0, -1), (0, 1), (-1, -1), (-1, 1), (1, -1), (1, 1)]
+THRESHOLD = 128
+IMAGE_SIZE = (GRID_SIZE, GRID_SIZE)
+
+def initialize_grid(size):
+    return np.random.randint(0, 256, size=size)
+
+def update_cell(grid, i, j):
+    current_value = grid[i, j]
+    neighbor_values = []
+    for dx, dy in NEIGHBORS:
+        ni, nj = i + dx, j + dy
+        if 0 <= ni < grid.shape[0] and 0 <= nj < grid.shape[1]:
+            neighbor_values.append(grid[ni, nj])
+    avg_value = np.mean(neighbor_values)
+    if avg_value > THRESHOLD:
+        return 255
+    else:
+        return 0
+
+def parallel_update(grid):
+    with ThreadPoolExecutor() as executor:
+        futures = []
+        for i in range(grid.shape[0]):
+            for j in range(grid.shape[1]):
+                futures.append(executor.submit(update_cell, grid, i, j))
+        updated_grid = np.copy(grid)
+        for idx, future in enumerate(futures):
+            i, j = divmod(idx, grid.shape[1])
+            updated_grid[i, j] = future.result()
+    return updated_grid
+
+def run_parallel_cellular_algorithm():
+    grid = initialize_grid(IMAGE_SIZE)
+    print("Initial Image (Grid):")
+    print(grid)
+    for iteration in range(ITERATIONS):
+        print(f"Iteration {iteration + 1}:")
+        print(grid)
+        grid = parallel_update(grid)
+    return grid
+
+final_grid = run_parallel_cellular_algorithm()
+print("Final Image (Grid) after all iterations:")
+print(final_grid)
