@@ -1,0 +1,85 @@
+import numpy as np
+
+# 1. Generate a synthetic dataset
+def generate_synthetic_data(n_samples=100, n_features=10):
+    """
+    Generates a synthetic dataset with random values.
+    For simplicity, this dataset does not represent any real-world dataset.
+    """
+    X = np.random.rand(n_samples, n_features)  # Features matrix (n_samples x n_features)
+    y = np.random.randint(0, 2, size=n_samples)  # Labels (binary classification)
+    return X, y
+
+# 2. Fitness function
+def fitness_function(solution, X, y):
+    """
+    Fitness function to evaluate the quality of the solution (subset of features).
+    This function calculates the 'fitness' by summing up the number of selected features.
+    """
+    selected_features = np.where(solution == 1)[0]
+    
+    if len(selected_features) == 0:
+        return 0  # No features selected, poor fitness
+    
+    # For simplicity, we simulate feature selection by just counting the number of selected features.
+    # This can be replaced with more complex evaluation, like classification performance.
+    return len(selected_features)  # Return the number of features selected
+
+# 3. Cuckoo Search Algorithm (CSA)
+def cuckoo_search(X, y, num_nests=10, max_iter=100, pa=0.25):
+    """
+    Implements the Cuckoo Search Algorithm (CSA) for feature selection.
+    - num_nests: Number of solutions (nests)
+    - max_iter: Number of iterations
+    - pa: Probability of a nest being replaced
+    """
+    # 3.1. Initialize nests randomly (binary solutions)
+    nests = np.random.randint(2, size=(num_nests, X.shape[1]))  # Binary representation of feature subsets
+    fitness = np.array([fitness_function(nest, X, y) for nest in nests])  # Evaluate fitness of each nest
+    
+    # 3.2. Main loop of CSA
+    for iteration in range(max_iter):
+        # 3.2.1. Generate new solutions (Levy Flights)
+        new_nests = np.copy(nests)
+        for i in range(num_nests):
+            # Perform Levy flight (exploration of solution space)
+            step_size = np.random.randn() * 0.1
+            new_nests[i] = new_nests[i] + step_size  # Modify the current solution slightly
+            
+            # Ensure binary solution (keeping the features 0 or 1)
+            new_nests[i] = np.clip(new_nests[i], 0, 1)
+
+        # 3.2.2. Evaluate fitness of new nests
+        new_fitness = np.array([fitness_function(nest, X, y) for nest in new_nests])
+
+        # 3.2.3. Greedy selection: replace old nests if new ones are better
+        for i in range(num_nests):
+            if new_fitness[i] > fitness[i]:
+                nests[i] = new_nests[i]
+                fitness[i] = new_fitness[i]
+
+        # 3.2.4. Discovering a worse nest and replacing it randomly with probability pa
+        for i in range(num_nests):
+            if np.random.rand() < pa:
+                nests[i] = np.random.randint(2, size=X.shape[1])  # Replacing with a random solution
+                fitness[i] = fitness_function(nests[i], X, y)
+    
+        # Print the best solution at each iteration
+        best_idx = np.argmax(fitness)
+        print(f"Iteration {iteration+1}: Best fitness = {fitness[best_idx]}, Best features = {np.where(nests[best_idx] == 1)[0]}")
+
+    # Return the best nest found
+    best_idx = np.argmax(fitness)
+    return nests[best_idx], fitness[best_idx]
+
+# 4. Main program
+if __name__ == "__main__":
+    # Generate synthetic data
+    X, y = generate_synthetic_data(n_samples=100, n_features=10)
+    
+    # Apply Cuckoo Search for feature selection
+    best_solution, best_fitness = cuckoo_search(X, y, num_nests=10, max_iter=20, pa=0.25)
+    
+    # Final output: Best selected features
+    print("\nBest selected features (indices):", np.where(best_solution == 1)[0])
+    print("Fitness of the selected features:", best_fitness)
