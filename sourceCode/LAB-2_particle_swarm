@@ -1,0 +1,84 @@
+import numpy as np
+
+class Particle:
+    def __init__(self, dim, bounds):
+        self.dim = dim  # Dimensionality of the problem (number of variables)
+        self.position = np.random.uniform(bounds[0], bounds[1], dim)  # Initial position of the particle
+        self.velocity = np.random.uniform(-1, 1, dim)  # Initial velocity of the particle
+        self.best_position = np.copy(self.position)  # Best position found by the particle
+        self.best_value = float('inf')  # Best value (fitness) found by the particle
+
+    def evaluate(self, fitness_func):
+        # Evaluate the fitness of the particle's current position
+        fitness = fitness_func(self.position)
+        if fitness < self.best_value:  # Update the best known position and value
+            self.best_value = fitness
+            self.best_position = np.copy(self.position)
+
+    def update_velocity(self, global_best_position, w, c1, c2):
+        # Update the velocity of the particle based on personal best and global best
+        inertia = w * self.velocity
+        cognitive = c1 * np.random.random() * (self.best_position - self.position)
+        social = c2 * np.random.random() * (global_best_position - self.position)
+        self.velocity = inertia + cognitive + social
+
+    def update_position(self, bounds):
+        # Update the position of the particle
+        self.position += self.velocity
+        # Ensure the particle stays within the bounds
+        self.position = np.clip(self.position, bounds[0], bounds[1])
+
+# Sphere function (to minimize)
+def sphere_function(x):
+    return np.sum(x**2)
+
+class PSO:
+    def __init__(self, num_particles, dim, bounds, num_iterations, w=0.5, c1=1.5, c2=1.5):
+        self.num_particles = num_particles
+        self.dim = dim
+        self.bounds = bounds
+        self.num_iterations = num_iterations
+        self.w = w  # Inertia weight
+        self.c1 = c1  # Cognitive coefficient
+        self.c2 = c2  # Social coefficient
+
+        # Initialize particles
+        self.particles = [Particle(dim, bounds) for _ in range(num_particles)]
+        # Initialize global best position and value
+        self.global_best_position = None
+        self.global_best_value = float('inf')
+
+    def optimize(self, fitness_func):
+        # Iterate over the number of iterations
+        for iteration in range(self.num_iterations):
+            for particle in self.particles:
+                # Evaluate the fitness of each particle
+                particle.evaluate(fitness_func)
+                # Update the global best if necessary
+                if particle.best_value < self.global_best_value:
+                    self.global_best_value = particle.best_value
+                    self.global_best_position = np.copy(particle.best_position)
+            
+            # Update velocities and positions of particles
+            for particle in self.particles:
+                particle.update_velocity(self.global_best_position, self.w, self.c1, self.c2)
+                particle.update_position(self.bounds)
+
+            print(f"Iteration {iteration + 1}: Best value = {self.global_best_value}")
+
+        return self.global_best_position, self.global_best_value
+
+# Problem setup
+num_particles = 30  # Number of particles in the swarm
+dim = 5  # Dimensionality (number of variables)
+bounds = (-5.0, 5.0)  # Bounds for the search space (e.g., each variable between -5 and 5)
+num_iterations = 100  # Number of iterations
+
+# Create PSO optimizer and run the optimization
+pso = PSO(num_particles, dim, bounds, num_iterations)
+best_position, best_value = pso.optimize(sphere_function)
+
+# Output the best solution
+print("\nOptimized Solution:")
+print("Best position:", best_position)
+print("Best value (fitness):", best_value)
