@@ -1,1 +1,76 @@
-print("Rishabh Kumar - 1BM22CS221")
+import random
+
+# Desired output string
+target = "Rishabh Kumar - 1BM22CS221"
+target_length = len(target)
+
+# Population parameters
+population_size = 100
+mutation_rate = 0.01
+max_generations = 1000
+
+# Create random string of the same length as the target
+def random_string():
+    return ''.join(random.choice('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 -') for _ in range(target_length))
+
+# Fitness function: Measures how many characters match the target string
+def fitness(individual):
+    return sum(1 for i, char in enumerate(individual) if char == target[i])
+
+# Selection function: Select individuals for mating based on fitness
+def select(population):
+    weighted_population = []
+    for individual in population:
+        # Higher fitness means higher chances of being selected
+        weighted_population.extend([individual] * fitness(individual))
+    return random.choice(weighted_population)
+
+# Crossover (single-point): Combine two individuals to create an offspring
+def crossover(parent1, parent2):
+    crossover_point = random.randint(1, target_length - 1)
+    child = parent1[:crossover_point] + parent2[crossover_point:]
+    return child
+
+# Mutation: Randomly alter a character in the individual with a small probability
+def mutate(individual):
+    individual = list(individual)  # Convert to list to mutate a character
+    for i in range(target_length):
+        if random.random() < mutation_rate:
+            individual[i] = random.choice('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 -')
+    return ''.join(individual)
+
+# Main Genetic Algorithm function
+def genetic_algorithm():
+    population = [random_string() for _ in range(population_size)]
+    generation = 0
+    
+    while generation < max_generations:
+        # Sort population based on fitness (higher fitness is better)
+        population = sorted(population, key=lambda x: fitness(x), reverse=True)
+        
+        # Check if we found the solution
+        if fitness(population[0]) == target_length:
+            print(f"Solution found in generation {generation}: {population[0]}")
+            break
+        
+        # Create the next generation
+        new_population = []
+        
+        # Elitism: Keep the best individual
+        new_population.append(population[0])
+        
+        # Select and breed the next generation
+        for _ in range(population_size - 1):
+            parent1 = select(population)
+            parent2 = select(population)
+            child = crossover(parent1, parent2)
+            child = mutate(child)
+            new_population.append(child)
+        
+        population = new_population
+        generation += 1
+        
+    print("Rishabh Kumar - 1BM22CS221")
+
+# Run the genetic algorithm
+genetic_algorithm()
